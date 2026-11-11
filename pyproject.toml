@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cad-exploded-view-studio"
+version = "0.1.0"
+description = "Local 3D studio for verified exploded views of STEP assemblies"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Ayoub Elkhader" }]
+requires-python = ">=3.10"
+# pythonocc-core is distributed through conda-forge only; see environment.yml.
+dependencies = [
+  "exploded-view-verifier @ git+https://github.com/ayoub-elkhader/cad-exploded-view-verifier.git",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+cad-studio = "studio.server:main"
+
+[tool.setuptools]
+packages = ["studio"]
+
+[tool.setuptools.package-data]
+studio = ["web/*", "web/vendor/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

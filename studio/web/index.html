@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CAD Studio · Verified exploded views</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">◈</span><div><strong>CAD Studio</strong><small>Verified exploded views</small></div></div>
+  <div class="top-right"><span class="dot"></span><span id="health">Local data</span></div>
+</header>
+<div class="shell">
+  <aside class="library">
+    <div class="eyebrow">Library</div>
+    <h1>Choose an assembly</h1>
+    <label for="source">Source</label>
+    <select id="source"><option value="">All sources</option></select>
+    <label for="search">Name</label>
+    <input id="search" placeholder="e.g. shaft, flange…" autocomplete="off">
+    <div class="count" id="count">Reading the catalogue…</div>
+    <div id="catalog" class="catalog"></div>
+    <button id="more" class="ghost" hidden>Show more</button>
+  </aside>
+
+  <main class="stage">
+    <div class="stage-head">
+      <div><div class="eyebrow" id="src-name">3D studio</div><h2 id="model-name">Select an assembly</h2></div>
+      <div class="dims" id="dims"></div>
+    </div>
+    <div class="viewport" id="viewport">
+      <canvas id="canvas" aria-label="3D view: drag to rotate in any direction, Shift or right-click to pan, wheel to zoom, Ctrl to roll around the view axis"></canvas>
+      <div class="overlay" id="overlay"></div>
+      <div class="toolbar">
+        <button data-view="iso" title="Isometric view">ISO</button>
+        <button data-view="front" title="Front">Front</button>
+        <button data-view="back" title="Back">Back</button>
+        <button data-view="left" title="Left">Left</button>
+        <button data-view="right" title="Right">Right</button>
+        <button data-view="top" title="Top">Top</button>
+        <button data-view="bottom" title="Bottom">Bottom</button>
+        <span class="sep"></span>
+        <button id="fit" title="Fit (F)">⌖ Fit</button>
+      </div>
+      <div class="empty" id="empty"><div class="big">◈</div><h3>One assembly, every direction.</h3><p>Pick a model on the left. The studio computes an exploded view and checks it with the geometric verifier.</p></div>
+      <div class="job" id="job" hidden><div class="job-row"><span id="job-text">Preparing…</span><button id="cancel" class="ghost small">Stop</button></div><progress id="progress" max="100" value="0"></progress><small id="job-time"></small></div>
+      <div class="help">Drag: rotate · Shift or right-click: pan · Wheel: zoom to cursor · Ctrl + drag: roll · Double-click: centre a part · Arrows, + / −, F</div>
+    </div>
+    <section class="dock">
+      <div class="dock-row">
+        <div class="seg" role="group" aria-label="Explosion mode">
+          <button id="mode-sim" class="on">All at once</button><button id="mode-seq">Part by part</button>
+        </div>
+        <button id="b-assembled" class="ghost">Assembled</button>
+        <div class="slider-wrap"><div class="zone" id="zone"></div><input type="range" id="slider" min="0" max="1000" value="0" disabled aria-label="Explosion"></div>
+        <button id="b-compact" class="ghost" disabled title="Smallest checked conflict-free spacing, with a margin">Compact view</button>
+        <button id="b-exploded" class="primary" disabled>Exploded view</button>
+        <button id="b-play" class="ghost" disabled title="Animate">▶</button>
+        <span class="state" id="state">—</span>
+      </div>
+      <div class="dock-row seq-row" id="seq-row" hidden>
+        <button id="prev" class="ghost">‹ Previous</button><span id="seq-label">—</span><button id="next" class="ghost">Next ›</button>
+      </div>
+      <div class="dock-row share-row">
+        <span class="eyebrow">Share</span>
+        <button id="png" class="ghost" disabled>High-resolution PNG</button>
+        <button id="share" class="primary" disabled>Standalone HTML page</button>
+        <span id="share-msg" class="muted"></span>
+      </div>
+    </section>
+  </main>
+
+  <aside class="inspector">
+    <div class="tabs" role="tablist"><button data-tab="bom" class="on">Bill of materials</button><button data-tab="checks">Checks</button><button data-tab="look">Display</button></div>
+    <section data-panel="bom">
+      <div class="bom-head"><span id="bom-count">—</span><button id="csv" class="ghost small" disabled>CSV</button></div>
+      <div class="bom-wrap"><table><thead><tr><th>Item</th><th>Name</th><th>Size (mm)</th><th>Mass</th></tr></thead><tbody id="bom"></tbody></table></div>
+      <div class="sel" id="sel" hidden>
+        <div class="eyebrow">Selected part</div><h3 id="sel-name"></h3><p id="sel-mat"></p>
+        <dl><dt>Size</dt><dd id="sel-dims"></dd><dt>Volume</dt><dd id="sel-vol"></dd><dt>Mass</dt><dd id="sel-mass"></dd><dt>Order</dt><dd id="sel-order"></dd></dl>
+        <div class="row"><button id="isolate" class="ghost small">Isolate</button><button id="goto" class="ghost small">Go to its step</button><button id="unsel" class="ghost small">Deselect</button></div>
+      </div>
+    </section>
+    <section data-panel="checks" hidden>
+      <div class="check"><span>Final exploded view</span><b id="c-final">—</b></div>
+      <div class="check"><span>All at once</span><b id="c-sim">—</b></div>
+      <div class="check"><span>Disassembly order</span><b id="c-order">—</b></div>
+      <div class="check"><span>Part-by-part animation</span><b id="c-seq">—</b></div>
+      <p class="muted small" id="c-origin"></p>
+      <p class="muted small" id="c-scope"></p>
+    </section>
+    <section data-panel="look" hidden>
+      <label for="color">Colours</label>
+      <select id="color"><option value="part">One colour per part</option><option value="material">Declared materials</option><option value="mono">Technical (grey)</option></select>
+      <label for="up">Vertical axis of the file</label>
+      <select id="up"><option value="z">Z (Onshape, Fusion 360)</option><option value="y">Y (many STEP files)</option></select>
+      <div class="toggles">
+        <label><input type="checkbox" data-opt="balloons" checked> Numbered balloons</label>
+        <label><input type="checkbox" data-opt="traces" checked> Trajectory lines</label>
+        <label><input type="checkbox" data-opt="edges" checked> Edges</label>
+        <label><input type="checkbox" data-opt="shadows" checked> Shadows</label>
+        <label><input type="checkbox" data-opt="grid"> Ground grid</label>
+        <label><input type="checkbox" data-opt="ghost" checked> Dim other parts on selection</label>
+      </div>
+      <p class="muted small">The scale bar (bottom left) follows the zoom. The overall size of the assembly is shown above the view.</p>
+    </section>
+  </aside>
+</div>
+<script src="vendor/three.min.js"></script>
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

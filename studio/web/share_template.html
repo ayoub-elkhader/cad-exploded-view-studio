@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__ · exploded view</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<header>
+  <div><div class="eyebrow">Exploded view · CAD Studio</div><h1 id="title"></h1><div class="sub" id="sub"></div></div>
+  <div class="badges" id="badges"></div>
+</header>
+<main>
+  <div class="viewport"><canvas id="canvas" aria-label="3D view: drag to rotate, Shift or right-click to pan, wheel to zoom"></canvas><div class="overlay" id="overlay"></div>
+    <div class="toolbar"><button data-view="iso">ISO</button><button data-view="front">Front</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="top">Top</button><button id="fit">⌖</button></div>
+    <div class="help">Drag: rotate · Shift or right-click: pan · Wheel: zoom · Double-click: centre a part</div>
+  </div>
+  <aside>
+    <div class="ctrl">
+      <div class="row"><button id="asm">Assembled</button><input type="range" id="slider" min="0" max="1000" value="1000"><button id="exp" class="primary">Exploded</button></div>
+      <div class="state" id="state"></div>
+      <div class="row small"><label><input type="checkbox" id="o-balloons" checked> Balloons</label><label><input type="checkbox" id="o-traces" checked> Trajectories</label>
+        <select id="color"><option value="part">Colour per part</option><option value="material">Materials</option><option value="mono">Technical</option></select></div>
+    </div>
+    <h2>Bill of materials</h2>
+    <div class="bom"><table><thead><tr><th>Item</th><th>Name</th><th>Size (mm)</th></tr></thead><tbody id="bom"></tbody></table></div>
+    <p class="scope" id="scope"></p>
+  </aside>
+</main>
+<script>/*__THREE__*/</script>
+<script>/*__CORE__*/</script>
+<script>const DATA = __DATA__;</script>
+<script>/*__SHARE__*/</script>
+</body>
+</html>
