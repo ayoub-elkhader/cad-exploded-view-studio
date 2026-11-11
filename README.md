@@ -2,6 +2,10 @@
 
 **Status: prototype.** A local 3D studio that opens a STEP assembly, computes an exploded view **checked by a geometric verifier**, animates it (all at once or part by part) and exports it as a PNG or as a standalone HTML page that opens without a server.
 
+![Exploded view of an 8-part AutoMate assembly exported by the studio](docs/exploded_view_automate.png)
+
+*PNG export of the studio for a real assembly from the AutoMate dataset (Jones et al., 2021, CC0), loaded from the examples of the verifier repository. The final layout passed the interference verifier after one axial-spreading pass. A straight-line order exists to take all 8 parts apart. Numbered balloons, dashed motion paths and the scale bar are drawn by the studio.*
+
 All computations come from [cad-exploded-view-verifier](https://github.com/ayoub-elkhader/cad-exploded-view-verifier). The studio adds the scheduling, the verdicts shown to the user and the 3D interface. It runs on `127.0.0.1` only and makes no network or LLM call.
 
 ## What the studio computes for an assembly
