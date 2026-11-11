@@ -2,8 +2,10 @@
 
     python -m studio.server --port 8780      (then open http://127.0.0.1:8780)
 
-Catalogue: the built-in synthetic samples of ``exploded_view_verifier`` and every
-``*.step`` / ``*.stp`` file under ``CAD_DATA_ROOT`` (default: ``./models``).
+Catalogue: the built-in synthetic samples of ``exploded_view_verifier`` and, under
+``CAD_DATA_ROOT`` (default: ``./models``): Fusion 360 Gallery folders (``assembly.json``),
+AutoMate assemblies (``automate_asm/*.json`` with their ``automate_step/`` folder, or
+``AUTOMATE_STEP_DIR``) and every other ``*.step`` / ``*.stp`` file.
 Each model is computed once by ``studio/worker.py`` in a separate process (one at a time);
 results go to ``STUDIO_RUNTIME`` (default: ``./runtime``).
 
@@ -37,7 +39,8 @@ ROOT = HERE.parent
 WEB = HERE / "web"
 DATA = Path(os.environ.get("CAD_DATA_ROOT", ROOT / "models"))
 RUNTIME = Path(os.environ.get("STUDIO_RUNTIME", ROOT / "runtime"))
-SOURCES = {"sample": "Built-in samples", "step": "Local STEP files"}
+SOURCES = {"sample": "Built-in samples", "step": "Local STEP files",
+           "fusion": "Fusion 360 Gallery", "automate": "AutoMate (Onshape)"}
 CATALOG: dict = {}
 JOBS: dict = {}
 LOCK = threading.RLock()
@@ -49,8 +52,18 @@ def index_data():
     from exploded_view_verifier import samples
     entries = [("sample", name, "", "synthetic assembly") for name in samples.SAMPLES]
     if DATA.is_dir():
+        fusion = [p for p in DATA.rglob("assembly.json")]
+        fusion_dirs = {p.parent for p in fusion}
+        entries += [("fusion", p.parent.name, str(p), "Fusion assembly") for p in fusion]
+        # AutoMate: <dir>/<id>.json next to a step folder given by AUTOMATE_STEP_DIR, or
+        # the layout <root>/automate_asm/*.json + <root>/automate_step/
+        for asm_dir in DATA.rglob("automate_asm"):
+            step_dir = Path(os.environ.get("AUTOMATE_STEP_DIR", asm_dir.parent / "automate_step"))
+            entries += [("automate", p.stem, str(p) + "|" + str(step_dir), "AutoMate assembly")
+                        for p in asm_dir.glob("*.json")]
         entries += [("step", p.relative_to(DATA).as_posix(), str(p), "STEP assembly")
-                    for p in DATA.rglob("*") if p.suffix.lower() in (".step", ".stp")]
+                    for p in DATA.rglob("*") if p.suffix.lower() in (".step", ".stp")
+                    and p.parent not in fusion_dirs and "automate_step" not in p.parts]
     CATALOG.clear()
     for source, case, path, kind in sorted(entries):
         uid = hashlib.sha256((source + ":" + case).encode()).hexdigest()[:20]

@@ -49,6 +49,53 @@ def test_step_file_source(tmp_path):
     assert status["state"] == "done" and len(scene["parts"]) == 2
 
 
+def _write_datasets(root):
+    """Tiny assemblies in the Fusion and AutoMate formats (two boxes side by side)."""
+    from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
+    from exploded_view_verifier.geometry import write_step
+    fus = root / "fusion" / "demo_fusion"
+    fus.mkdir(parents=True)
+    write_step([BRepPrimAPI_MakeBox(10, 10, 10).Shape()], fus / "b1.step")
+    write_step([BRepPrimAPI_MakeBox(10, 10, 10).Shape()], fus / "b2.step")
+    frame = lambda x: {"origin": {"x": x, "y": 0, "z": 0}, "x_axis": {"x": 1, "y": 0, "z": 0},  # noqa: E731
+                       "y_axis": {"x": 0, "y": 1, "z": 0}, "z_axis": {"x": 0, "y": 0, "z": 1}}
+    (fus / "assembly.json").write_text(json.dumps({
+        "bodies": {"b1": {"step": "b1.step", "material": {"name": "Steel"}}, "b2": {"step": "b2.step"}},
+        "occurrences": {"o1": {"name": "Block A", "bodies": {"b1": {}}, "transform": frame(0)},
+                        "o2": {"name": "Block B", "bodies": {"b2": {}}, "transform": frame(1.0)}},
+        "tree": {"root": {"o1": {}, "o2": {}}}}))
+    am = root / "automate_asm"
+    st = root / "automate_step"
+    am.mkdir()
+    st.mkdir()
+    write_step([BRepPrimAPI_MakeBox(10, 10, 10).Shape()], st / "p1.step")
+    eye = lambda tx: [1, 0, 0, tx, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]  # noqa: E731
+    (am / "demo_automate.json").write_text(json.dumps({
+        "parts": [{"id": "p1", "has_step": True}],
+        "occurrences": [{"id": "a", "part": 0, "transform": eye(0)},
+                        {"id": "b", "part": 0, "transform": eye(0.01)}]}))
+
+
+def test_dataset_sources(tmp_path, monkeypatch):
+    data = tmp_path / "data"
+    _write_datasets(data)
+    monkeypatch.setattr(server, "DATA", data)
+    server.index_data()
+    kinds = sorted((r["source"], r["case"]) for r in server.CATALOG.values() if r["source"] != "sample")
+    assert kinds == [("automate", "demo_automate"), ("fusion", "demo_fusion")]
+    for r in server.CATALOG.values():
+        if r["source"] == "sample":
+            continue
+        out = tmp_path / r["source"]
+        out.mkdir()
+        status, scene = run_worker(out, r["case"], r["source"], r["path"])
+        assert status["state"] == "done" and len(scene["parts"]) == 2
+        assert scene["validation"]["final"] == "pass"
+        if r["source"] == "fusion":
+            a = next(p for p in scene["parts"] if p["name"] == "Block A")
+            assert a["material"] == "Steel" and a["mass_g"] == pytest.approx(7.85, rel=1e-3)
+
+
 def _get(url):
     with urllib.request.urlopen(url, timeout=10) as r:
         return json.loads(r.read())

@@ -37,9 +37,16 @@ python -m studio.server --port 8780     # or: cad-studio --port 8780
 # open http://127.0.0.1:8780
 ```
 
-The catalogue lists the built-in synthetic samples (`pin_in_plate`, `shaft_stack`, `caged_cube`) and every `.step` / `.stp` file under `models/`, or under `CAD_DATA_ROOT`. Results, snapshots and shared pages are written to `runtime/`, or to `STUDIO_RUNTIME` (see `.env.example`). A model can be opened directly with `?source=sample&case=shaft_stack`.
+The catalogue lists the built-in synthetic samples (`pin_in_plate`, `shaft_stack`, `caged_cube`). Under `models/` (or `CAD_DATA_ROOT`), it also lists:
+- Fusion 360 Gallery folders (`<id>/assembly.json`): part names and declared materials are shown, so masses can be computed;
+- AutoMate assemblies (`automate_asm/*.json` with their `automate_step/` folder, or `AUTOMATE_STEP_DIR`);
+- every other `.step` / `.stp` file.
+
+The datasets are not included. [DATASETS.md](https://github.com/ayoub-elkhader/cad-exploded-view-verifier/blob/main/DATASETS.md) explains how to download them and gives their licenses: Fusion 360 Gallery is for non-commercial research only. Results, snapshots and shared pages are written to `runtime/`, or to `STUDIO_RUNTIME` (see `.env.example`). A model can be opened directly with `?source=sample&case=shaft_stack`.
 
 ## Demo
+
+On a real Fusion 360 Gallery assembly (`133099_3ccb3631`, 9 parts, run locally), the worker reads the part names and the declared material (steel), accepts the final view and finds a 9-part disassembly order.
 
 I checked it in a browser on `shaft_stack` (5 parts):
 - final view: *Checked*, plan from axial spreading;
@@ -53,8 +60,9 @@ I checked it in a browser on `shaft_stack` (5 parts):
 pytest
 ```
 
-4 tests pass locally (Windows 10, Python 3.10, pythonocc-core 7.9.0):
+5 tests pass locally (Windows 10, Python 3.10, pythonocc-core 7.9.0):
 - the worker on the three samples and on a STEP file (`caged_cube` correctly gets "no disassembly order");
+- catalogue detection and the worker on small files in the Fusion and AutoMate formats (names, declared material, mass);
 - the HTTP server end to end: catalogue, computation queue, scene, export of the standalone page, rejection of unknown ids.
 
 CI runs them on Python 3.10–3.12 with conda-forge.
@@ -62,7 +70,7 @@ CI runs them on Python 3.10–3.12 with conda-forge.
 ## Limitations
 
 - The limitations of the verifier apply: rigid translations only, discrete sampling of motions, no joints, fasteners or rotations. The interface therefore never says "mechanically guaranteed".
-- Every solid of a STEP file is one part; names and materials are not read from STEP. Parts appear as "Solid 1", "Solid 2"… and get no mass.
+- For plain STEP files, every solid is one part; names and materials are not read. Parts appear as "Solid 1", "Solid 2"… and get no mass.
 - Large assemblies can take many minutes. The studio computes one model at a time.
 - Local tool: no authentication. Do not expose the port to a network.
 

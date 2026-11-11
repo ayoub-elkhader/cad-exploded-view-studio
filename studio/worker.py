@@ -64,12 +64,35 @@ def load_geometry(req):
     if req["source"] == "sample":
         occ = SAMPLES.build(req["case"], DEFL)
         meta = {p: {"name": p.replace("_", " "), "materials": []} for p in occ}
+    elif req["source"] == "fusion":
+        from exploded_view_verifier.datasets import load_fusion
+        occ, names = load_fusion(req["path"], deflection=DEFL)
+        meta = {p: {"name": names.get(p, p), "materials": _fusion_materials(req["path"], p)} for p in occ}
+    elif req["source"] == "automate":
+        from exploded_view_verifier.datasets import load_automate
+        asm_json, step_dir = req["path"].split("|", 1)
+        occ, names = load_automate(asm_json, step_dir, deflection=DEFL)
+        meta = {p: {"name": names.get(p, p), "materials": []} for p in occ}
     else:
         occ = G.load_step_assembly(req["path"], DEFL)
         meta = {p: {"name": f"Solid {k + 1}", "materials": []} for k, p in enumerate(occ)}
     if not occ:
         raise ValueError("No usable STEP geometry in this model.")
     return occ, meta
+
+
+def _fusion_materials(assembly_json, part_id):
+    """Material names declared in a Fusion assembly.json for one occurrence (or body)."""
+    data = json.loads(Path(assembly_json).read_text(encoding="utf-8"))
+    occ = (data.get("occurrences") or {}).get(part_id)
+    bodies = list((occ.get("bodies") or {}).keys()) if occ else [part_id]
+    out = []
+    for bid in bodies:
+        mat = ((data.get("bodies") or {}).get(bid) or {}).get("material")
+        name = mat.get("name") if isinstance(mat, dict) else mat
+        if name and str(name) not in out:
+            out.append(str(name))
+    return out
 
 
 def triangulate(shapes):
